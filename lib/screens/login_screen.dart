@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,44 +12,39 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _loading = false; 
-  String? _error;        
+  bool _loading = false;
+  String? _error;
 
   @override
   void dispose() {
-    
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
   Future<void> _login() async {
-    
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
       _loading = true;
-      _error = null; 
+      _error = null;
     });
 
     try {
-      await ref.read(authProvider.notifier).login(
-        _emailController.text.trim(), 
-        _passwordController.text,
-      );
-      
+      await ref
+          .read(authProvider.notifier)
+          .login(_emailController.text.trim(), _passwordController.text);
     } on DioException catch (e) {
-      
       final msg = e.response?.data?['detail'];
-      setState(() => _error = msg is String ? msg : 'Email ou senha incorretos.');
+      setState(
+        () => _error = msg is String ? msg : 'Email ou senha incorretos.',
+      );
     } catch (_) {
       setState(() => _error = 'Erro inesperado. Tente novamente.');
     } finally {
-      
       if (mounted) setState(() => _loading = false);
     }
   }
@@ -71,17 +58,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         backgroundColor: const Color(0xFF2E7D32),
         foregroundColor: Colors.white,
       ),
-      body: SingleChildScrollView( 
+      body: SingleChildScrollView(
         child: Form(
           key: _formKey,
           child: Column(
             children: [
-              
               const Padding(
                 padding: EdgeInsets.only(top: 60.0, bottom: 10.0),
                 child: Icon(Icons.map, size: 80, color: Color(0xFF2E7D32)),
               ),
-              
+
               if (_error != null)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 32.0),
@@ -92,10 +78,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                 ),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 16.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32.0,
+                  vertical: 16.0,
+                ),
                 child: TextFormField(
                   controller: _emailController,
-                  keyboardType: TextInputType.emailAddress, 
+                  keyboardType: TextInputType.emailAddress,
                   validator: (v) =>
                       v != null && v.isNotEmpty ? null : '* Campo obrigatório',
                   decoration: InputDecoration(
@@ -107,10 +96,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 16.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32.0,
+                  vertical: 16.0,
+                ),
                 child: TextFormField(
                   controller: _passwordController,
-                  obscureText: true, 
+                  obscureText: true,
                   validator: (v) =>
                       v != null && v.isNotEmpty ? null : '* Campo obrigatório',
                   decoration: InputDecoration(
@@ -126,7 +118,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 height: 50,
                 width: 250,
                 child: ElevatedButton(
-                  
                   onPressed: _loading ? null : _login,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF2E7D32),
@@ -135,7 +126,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                   ),
-                  
+
                   child: _loading
                       ? const SizedBox(
                           height: 20,
@@ -149,7 +140,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 90),
-              
+
               TextButton(
                 onPressed: () => context.push('/register'),
                 child: const Text(

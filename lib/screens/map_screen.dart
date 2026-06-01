@@ -1,19 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -39,7 +23,6 @@ class MapScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    
     final areasAsync = ref.watch(areasProvider(propertyId));
 
     return Scaffold(
@@ -48,13 +31,13 @@ class MapScreen extends ConsumerWidget {
         backgroundColor: const Color(0xFF2E7D32),
         foregroundColor: Colors.white,
       ),
-      
+
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: const Color(0xFF2E7D32),
         foregroundColor: Colors.white,
         icon: const Icon(Icons.cloud_upload_outlined),
         label: const Text('Upload área'),
-        
+
         onPressed: () => context.push(
           '/properties/$propertyId/upload?name=${Uri.encodeComponent(propertyName)}',
         ),
@@ -72,7 +55,6 @@ class MapScreen extends ConsumerWidget {
               Text('Erro ao carregar mapa:\n$e', textAlign: TextAlign.center),
               const SizedBox(height: 12),
               ElevatedButton(
-                
                 onPressed: () => ref.invalidate(areasProvider(propertyId)),
                 child: const Text('Tentar novamente'),
               ),
@@ -80,7 +62,6 @@ class MapScreen extends ConsumerWidget {
           ),
         ),
         data: (areas) {
-          
           if (areas.isEmpty) {
             return const Center(
               child: Column(
@@ -108,8 +89,6 @@ class MapScreen extends ConsumerWidget {
     );
   }
 }
-
-
 
 class _MapView extends ConsumerStatefulWidget {
   final AreaListResponse areas;
@@ -149,7 +128,12 @@ class _MapViewState extends ConsumerState<_MapView> {
     super.dispose();
   }
 
-  void _showAreaSheet(BuildContext context, AreaFeature area, List<Category> cats, List<Subcategory> subs) {
+  void _showAreaSheet(
+    BuildContext context,
+    AreaFeature area,
+    List<Category> cats,
+    List<Subcategory> subs,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -172,9 +156,10 @@ class _MapViewState extends ConsumerState<_MapView> {
     final allPolygons = [...boundaryPolygons, ...internalPolygons];
     final initialFit = _computeCameraFit(widget.areas);
     final legendCategories = _extractCategories(widget.areas.internal);
-    
+
     final cats = ref.watch(categoriesProvider).valueOrNull ?? [];
-    final subs = ref.watch(subcategoriesProvider(widget.propertyId)).valueOrNull ?? [];
+    final subs =
+        ref.watch(subcategoriesProvider(widget.propertyId)).valueOrNull ?? [];
 
     return Stack(
       children: [
@@ -212,26 +197,21 @@ class _MapViewState extends ConsumerState<_MapView> {
   }
 }
 
-
-
-
-
-List<LatLng> _ringToLatLngs(List ring) =>
-    ring.map((c) => LatLng((c[1] as num).toDouble(), (c[0] as num).toDouble())).toList();
-
+List<LatLng> _ringToLatLngs(List ring) => ring
+    .map((c) => LatLng((c[1] as num).toDouble(), (c[0] as num).toDouble()))
+    .toList();
 
 List<Polygon<T>> _geometryToPolygons<T extends Object>(
   Map<String, dynamic> geometry,
   Color fill,
   Color border,
   double borderWidth, {
-  T? hitValue, 
+  T? hitValue,
 }) {
   final type = geometry['type'] as String;
   final coords = geometry['coordinates'] as List;
 
   if (type == 'Polygon') {
-    
     return [
       Polygon<T>(
         points: _ringToLatLngs(coords[0] as List),
@@ -244,7 +224,6 @@ List<Polygon<T>> _geometryToPolygons<T extends Object>(
   }
 
   if (type == 'MultiPolygon') {
-    
     return coords.map((poly) {
       return Polygon<T>(
         points: _ringToLatLngs((poly as List)[0] as List),
@@ -263,43 +242,47 @@ List<Polygon<AreaFeature>> _buildBoundaryPolygons(AreaFeature? boundary) {
   if (boundary == null) return [];
   return _geometryToPolygons<AreaFeature>(
     boundary.geometry,
-    const Color(0x1A2E7D32), 
-    const Color(0xFF2E7D32), 
+    const Color(0x1A2E7D32),
+    const Color(0xFF2E7D32),
     2.5,
-    
   );
 }
 
 List<Polygon<AreaFeature>> _buildInternalPolygons(List<AreaFeature> features) {
   return features.expand((f) {
     final hex = f.properties.categoryColor;
-    
+
     final fill = hex != null ? _hexToColor(hex, 0xCC) : const Color(0x8088B04B);
-    final border = hex != null ? _hexToColor(hex, 0xFF) : const Color(0xFF88B04B);
+    final border = hex != null
+        ? _hexToColor(hex, 0xFF)
+        : const Color(0xFF88B04B);
     return _geometryToPolygons<AreaFeature>(
-      f.geometry, fill, border, 1.5,
-      hitValue: f, 
+      f.geometry,
+      fill,
+      border,
+      1.5,
+      hitValue: f,
     );
   }).toList();
 }
 
-
 Color _hexToColor(String hex, int alpha) {
   final h = hex.replaceFirst('#', '');
   final rgb = int.parse(h, radix: 16);
-  
+
   return Color((alpha << 24) | (rgb & 0xFFFFFF));
 }
 
-
-
-
 CameraFit _computeCameraFit(AreaListResponse areas) {
-  final source = areas.boundary ?? (areas.internal.isNotEmpty ? areas.internal.first : null);
+  final source =
+      areas.boundary ??
+      (areas.internal.isNotEmpty ? areas.internal.first : null);
   if (source == null) {
-    
     return CameraFit.bounds(
-      bounds: LatLngBounds(const LatLng(-15.8, -48.0), const LatLng(-15.6, -47.8)),
+      bounds: LatLngBounds(
+        const LatLng(-15.8, -48.0),
+        const LatLng(-15.6, -47.8),
+      ),
       padding: const EdgeInsets.all(32),
     );
   }
@@ -307,7 +290,10 @@ CameraFit _computeCameraFit(AreaListResponse areas) {
   final allPoints = _collectAllPoints(areas);
   if (allPoints.isEmpty) {
     return CameraFit.bounds(
-      bounds: LatLngBounds(const LatLng(-15.8, -48.0), const LatLng(-15.6, -47.8)),
+      bounds: LatLngBounds(
+        const LatLng(-15.8, -48.0),
+        const LatLng(-15.6, -47.8),
+      ),
       padding: const EdgeInsets.all(32),
     );
   }
@@ -351,17 +337,15 @@ List<LatLng> _collectAllPoints(AreaListResponse areas) {
   return points;
 }
 
-
-
 typedef _Category = ({String name, String color});
 
 List<_Category> _extractCategories(List<AreaFeature> features) {
-  final seen = <String>{}; 
+  final seen = <String>{};
   final result = <_Category>[];
   for (final f in features) {
     final name = f.properties.categoryName;
     final color = f.properties.categoryColor;
-    
+
     if (name != null && color != null && seen.add(name)) {
       result.add((name: name, color: color));
     }
@@ -392,11 +376,13 @@ class _Legend extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                
                 Container(
                   width: 14,
                   height: 14,
-                  decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3)),
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Text(cat.name, style: const TextStyle(fontSize: 12)),
@@ -408,4 +394,3 @@ class _Legend extends StatelessWidget {
     );
   }
 }
-

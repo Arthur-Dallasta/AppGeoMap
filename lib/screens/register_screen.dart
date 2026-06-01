@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -48,7 +40,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _cpfController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  String _sex = 'M'; 
+  String _sex = 'M';
   bool _loading = false;
   String? _error;
 
@@ -77,16 +69,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
-      
+
       if (mounted) context.go('/login');
     } on DioException catch (e) {
       final detail = e.response?.data?['detail'];
       String msg;
       if (detail is String) {
-        
         msg = detail;
       } else if (detail is List && detail.isNotEmpty) {
-        
         msg = (detail.first['msg'] ?? detail.first.toString()).toString();
       } else {
         msg = 'Erro ao criar conta. (${e.response?.statusCode})';
@@ -120,7 +110,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   style: TextStyle(fontSize: 20, color: Color(0xFF2E7D32)),
                 ),
               ),
-              
+
               if (_error != null)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(32.0, 0, 32.0, 8),
@@ -131,7 +121,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   ),
                 ),
               _field(_nameController, 'Nome completo', false),
-              
+
               _field(
                 _cpfController,
                 'CPF',
@@ -145,16 +135,26 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   return null;
                 },
               ),
-              _field(_emailController, 'Email', false, type: TextInputType.emailAddress),
+              _field(
+                _emailController,
+                'Email',
+                false,
+                type: TextInputType.emailAddress,
+              ),
               _field(_passwordController, 'Senha (mín. 8 caracteres)', true),
-              
+
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32.0,
+                  vertical: 4,
+                ),
                 child: DropdownButtonFormField<String>(
                   value: _sex,
                   decoration: InputDecoration(
                     labelText: 'Sexo',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
                   items: const [
                     DropdownMenuItem(value: 'M', child: Text('Masculino')),
@@ -186,11 +186,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             color: Colors.white,
                           ),
                         )
-                      : const Text('Criar Conta', style: TextStyle(fontSize: 18)),
+                      : const Text(
+                          'Criar Conta',
+                          style: TextStyle(fontSize: 18),
+                        ),
                 ),
               ),
               const SizedBox(height: 24),
-              
+
               TextButton(
                 onPressed: () => context.go('/login'),
                 child: const Text(
@@ -205,8 +208,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     );
   }
 
-  
-  
   Widget _field(
     TextEditingController controller,
     String label,
@@ -222,7 +223,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         obscureText: obscure,
         keyboardType: type,
         inputFormatters: inputFormatters,
-        validator: validator ?? (v) => v != null && v.isNotEmpty ? null : '* Campo obrigatório',
+        validator:
+            validator ??
+            (v) => v != null && v.isNotEmpty ? null : '* Campo obrigatório',
         decoration: InputDecoration(
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
           label: Text(label),

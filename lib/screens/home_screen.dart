@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -17,7 +10,6 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    
     final propertiesAsync = ref.watch(propertiesProvider);
 
     return Scaffold(
@@ -29,12 +21,12 @@ class HomeScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Sair',
-            
+
             onPressed: () => ref.read(authProvider.notifier).logout(),
           ),
         ],
       ),
-      
+
       body: propertiesAsync.when(
         loading: () => const Center(
           child: CircularProgressIndicator(color: Color(0xFF2E7D32)),
@@ -48,27 +40,31 @@ class HomeScreen extends ConsumerWidget {
               Text(e.toString(), textAlign: TextAlign.center),
               const SizedBox(height: 12),
               ElevatedButton(
-                onPressed: () => ref.read(propertiesProvider.notifier).refresh(),
+                onPressed: () =>
+                    ref.read(propertiesProvider.notifier).refresh(),
                 child: const Text('Tentar novamente'),
               ),
             ],
           ),
         ),
         data: (properties) => properties.isEmpty
-            
-            ? _EmptyState(onRefresh: () => ref.read(propertiesProvider.notifier).refresh())
-            
+            ? _EmptyState(
+                onRefresh: () =>
+                    ref.read(propertiesProvider.notifier).refresh(),
+              )
             : RefreshIndicator(
                 color: const Color(0xFF2E7D32),
-                onRefresh: () => ref.read(propertiesProvider.notifier).refresh(),
+                onRefresh: () =>
+                    ref.read(propertiesProvider.notifier).refresh(),
                 child: ListView.builder(
                   padding: const EdgeInsets.all(16),
                   itemCount: properties.length,
-                  itemBuilder: (_, i) => _PropertyCard(property: properties[i], ref: ref),
+                  itemBuilder: (_, i) =>
+                      _PropertyCard(property: properties[i], ref: ref),
                 ),
               ),
       ),
-      
+
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: const Color(0xFF2E7D32),
         foregroundColor: Colors.white,
@@ -80,11 +76,9 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-
-
 class _PropertyCard extends StatelessWidget {
   final Property property;
-  final WidgetRef ref; 
+  final WidgetRef ref;
 
   const _PropertyCard({required this.property, required this.ref});
 
@@ -100,7 +94,6 @@ class _PropertyCard extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              
               const CircleAvatar(
                 backgroundColor: Color(0xFFE8F5E9),
                 child: Icon(Icons.landscape, color: Color(0xFF2E7D32)),
@@ -118,13 +111,13 @@ class _PropertyCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    
+
                     Text(
                       '${property.municipality} — ${property.state}',
                       style: TextStyle(color: Colors.grey[600], fontSize: 13),
                     ),
                     const SizedBox(height: 2),
-                    
+
                     Text(
                       '${property.totalAreaHa.toStringAsFixed(1)} ha',
                       style: const TextStyle(
@@ -147,13 +140,14 @@ class _PropertyCard extends StatelessWidget {
     );
   }
 
-  
   Future<void> _confirmDelete(BuildContext context) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Excluir propriedade'),
-        content: Text('Excluir "${property.name}"? Esta ação não pode ser desfeita.'),
+        content: Text(
+          'Excluir "${property.name}"? Esta ação não pode ser desfeita.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -168,12 +162,10 @@ class _PropertyCard extends StatelessWidget {
       ),
     );
     if (confirm == true) {
-      
       await ref.read(propertiesProvider.notifier).delete(property.id);
     }
   }
 }
-
 
 class _EmptyState extends StatelessWidget {
   final VoidCallback onRefresh;
@@ -192,10 +184,7 @@ class _EmptyState extends StatelessWidget {
             style: TextStyle(fontSize: 16, color: Colors.grey),
           ),
           const SizedBox(height: 8),
-          TextButton(
-            onPressed: onRefresh,
-            child: const Text('Atualizar'),
-          ),
+          TextButton(onPressed: onRefresh, child: const Text('Atualizar')),
         ],
       ),
     );

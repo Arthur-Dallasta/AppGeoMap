@@ -1,13 +1,8 @@
-
-
-
 import 'package:dio/dio.dart';
 import '../../../core/network/api_client.dart';
 
 class AuthRepository {
-  final Dio _dio = ApiClient.instance; 
-
-  
+  final Dio _dio = ApiClient.instance;
 
   Future<String> login(String email, String password) async {
     final response = await _dio.post(
@@ -17,9 +12,6 @@ class AuthRepository {
     return response.data['access_token'] as String;
   }
 
-  
-
-  
   Future<void> register({
     required String name,
     required String cpf,
@@ -29,7 +21,13 @@ class AuthRepository {
   }) async {
     await _dio.post(
       '/api/auth/register',
-      data: {'name': name, 'cpf': cpf, 'sex': sex, 'email': email, 'password': password},
+      data: {
+        'name': name,
+        'cpf': cpf,
+        'sex': sex,
+        'email': email,
+        'password': password,
+      },
     );
   }
 }
