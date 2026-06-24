@@ -40,62 +40,51 @@ class PropertyDetailScreen extends ConsumerWidget {
       data: (property) {
         if (property == null) {
           return Scaffold(
-            appBar: AppBar(
-              backgroundColor: _kGreen,
-              foregroundColor: Colors.white,
-            ),
+            appBar: AppBar(backgroundColor: _kGreen, foregroundColor: Colors.white),
             body: const Center(child: Text('Propriedade não encontrada')),
           );
         }
-        return _PropertyDetailView(property: property, propertyId: propertyId);
+        return DefaultTabController(
+          length: 3,
+          child: Scaffold(
+            appBar: AppBar(
+              title: Text(property.name, overflow: TextOverflow.ellipsis),
+              backgroundColor: _kGreen,
+              foregroundColor: Colors.white,
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.cloud_upload_outlined),
+                  tooltip: 'Upload área',
+                  onPressed: () => context.push(
+                    '/properties/$propertyId/upload?name=${Uri.encodeComponent(property.name)}',
+                  ),
+                ),
+              ],
+              bottom: const TabBar(
+                labelColor: Colors.white,
+                unselectedLabelColor: Colors.white70,
+                indicatorColor: Colors.white,
+                tabs: [
+                  Tab(text: 'Detalhes'),
+                  Tab(text: 'Áreas'),
+                  Tab(text: 'Mapa'),
+                ],
+              ),
+            ),
+            body: TabBarView(
+              children: [
+                _InfoTab(property: property, propertyId: propertyId),
+                _AreasTab(propertyId: propertyId),
+                _MapTab(propertyId: propertyId),
+              ],
+            ),
+          ),
+        );
       },
     );
   }
 }
 
-class _PropertyDetailView extends StatelessWidget {
-  final Property property;
-  final String propertyId;
-
-  const _PropertyDetailView({required this.property, required this.propertyId});
-
-  @override
-  Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(property.name, overflow: TextOverflow.ellipsis),
-          backgroundColor: _kGreen,
-          foregroundColor: Colors.white,
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.edit_outlined),
-              tooltip: 'Editar',
-              onPressed: () => context.push('/properties/${property.id}/edit'),
-            ),
-          ],
-
-          bottom: const TabBar(
-            labelColor: Colors.white,
-            unselectedLabelColor: Colors.white70,
-            indicatorColor: Colors.white,
-            tabs: [
-              Tab(icon: Icon(Icons.map_outlined), text: 'Mapa'),
-              Tab(icon: Icon(Icons.info_outline), text: 'Detalhes'),
-            ],
-          ),
-        ),
-        body: TabBarView(
-          children: [
-            _MapTab(propertyId: propertyId),
-            _InfoTab(property: property, propertyId: propertyId),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 class _InfoTab extends ConsumerWidget {
   final Property property;
