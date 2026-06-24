@@ -346,8 +346,15 @@ class _AreaCard extends ConsumerWidget {
       ),
     );
     if (confirmed != true) return;
-    await AreaRepository().deleteArea(propertyId, area.properties.id);
-    ref.invalidate(areasProvider(propertyId));
+    try {
+      await AreaRepository().deleteArea(propertyId, area.properties.id);
+      ref.invalidate(areasProvider(propertyId));
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao excluir área: $e')),
+      );
+    }
   }
 
   void _edit(BuildContext context) {
