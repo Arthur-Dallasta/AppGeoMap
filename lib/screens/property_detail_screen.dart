@@ -99,65 +99,6 @@ class _PropertyDetailView extends StatelessWidget {
   }
 }
 
-
-class _AreaListPanel extends StatelessWidget {
-  final AreaListResponse areas;
-  final String propertyId;
-  final List categories;
-  final List subcategories;
-
-  const _AreaListPanel({
-    required this.areas,
-    required this.propertyId,
-    required this.categories,
-    required this.subcategories,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final allAreas = [
-      if (areas.boundary != null) areas.boundary!,
-      ...areas.internal,
-    ];
-
-    return Container(
-      height: 108,
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.95),
-        boxShadow: const [BoxShadow(blurRadius: 12, color: Colors.black26)],
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      child: Column(
-        children: [
-          Container(
-            margin: const EdgeInsets.symmetric(vertical: 8),
-            width: 32,
-            height: 3,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          Expanded(
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-              itemCount: allAreas.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 10),
-              itemBuilder: (_, i) => _AreaChip(
-                area: allAreas[i],
-                propertyId: propertyId,
-                categories: categories.cast(),
-                subcategories: subcategories.cast(),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _AreaChip extends StatelessWidget {
   final AreaFeature area;
   final String propertyId;
@@ -407,17 +348,6 @@ List<LatLng> _ringToLatLngs(List ring) => ring
     .map((c) => LatLng((c[1] as num).toDouble(), (c[0] as num).toDouble()))
     .toList();
 
-List<Polygon> _buildBoundary(AreaFeature? b) {
-  if (b == null) return [];
-  return _geoToPolygons(b.geometry, const Color(0x1A2E7D32), _kGreen, 2.5);
-}
-
-List<Polygon> _buildInternal(List<AreaFeature> fs) => fs.expand((f) {
-  final hex = f.properties.categoryColor;
-  final fill = hex != null ? _hexAlpha(hex, 0xCC) : const Color(0x8088B04B);
-  final border = hex != null ? _hexAlpha(hex, 0xFF) : const Color(0xFF88B04B);
-  return _geoToPolygons(f.geometry, fill, border, 1.5);
-}).toList();
 
 List<Polygon> _geoToPolygons(
   Map<String, dynamic> geo,
@@ -450,34 +380,6 @@ List<Polygon> _geoToPolygons(
         .toList();
   }
   return [];
-}
-
-List<LatLng> _collectPoints(AreaListResponse areas) {
-  final all = [if (areas.boundary != null) areas.boundary!, ...areas.internal];
-  final pts = <LatLng>[];
-  for (final f in all) {
-    final type = f.geometry['type'] as String;
-    final coords = f.geometry['coordinates'] as List;
-    if (type == 'Polygon') pts.addAll(_ringToLatLngs(coords[0] as List));
-    if (type == 'MultiPolygon') {
-      for (final p in coords) {
-        pts.addAll(_ringToLatLngs((p as List)[0] as List));
-      }
-    }
-  }
-  return pts;
-}
-
-LatLngBounds _boundsFrom(List<LatLng> pts) {
-  double minLat = pts.first.latitude, maxLat = pts.first.latitude;
-  double minLng = pts.first.longitude, maxLng = pts.first.longitude;
-  for (final p in pts) {
-    if (p.latitude < minLat) minLat = p.latitude;
-    if (p.latitude > maxLat) maxLat = p.latitude;
-    if (p.longitude < minLng) minLng = p.longitude;
-    if (p.longitude > maxLng) maxLng = p.longitude;
-  }
-  return LatLngBounds(LatLng(minLat, minLng), LatLng(maxLat, maxLng));
 }
 
 Color _hexColor(String hex) {
