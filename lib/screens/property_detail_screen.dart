@@ -90,7 +90,7 @@ class _PropertyDetailView extends StatelessWidget {
         ),
         body: TabBarView(
           children: [
-            _MapTabLegacy(propertyId: propertyId),
+            _MapTab(propertyId: propertyId),
             _InfoTab(property: property, propertyId: propertyId),
           ],
         ),
@@ -99,138 +99,6 @@ class _PropertyDetailView extends StatelessWidget {
   }
 }
 
-class _MapTabLegacy extends ConsumerWidget {
-  final String propertyId;
-  const _MapTabLegacy({required this.propertyId});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final areasAsync = ref.watch(areasProvider(propertyId));
-
-    final categoriesAsync = ref.watch(categoriesProvider);
-    final subcategoriesAsync = ref.watch(subcategoriesProvider(propertyId));
-
-    return areasAsync.when(
-      loading: () =>
-          const Center(child: CircularProgressIndicator(color: _kGreen)),
-      error: (e, _) => Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Erro ao carregar mapa:\n$e', textAlign: TextAlign.center),
-            const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: () => ref.invalidate(areasProvider(propertyId)),
-              child: const Text('Tentar novamente'),
-            ),
-          ],
-        ),
-      ),
-      data: (areas) {
-        final categories = categoriesAsync.valueOrNull ?? [];
-        final subcategories = subcategoriesAsync.valueOrNull ?? [];
-
-        if (areas.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.map_outlined,
-                  size: 64,
-                  color: Color(0xFFB0BEC5),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Nenhuma área cadastrada.',
-                  style: TextStyle(color: Colors.grey),
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton.icon(
-                  onPressed: () => context.push(
-                    '/properties/$propertyId/upload?name=${Uri.encodeComponent('')}',
-                  ),
-                  icon: const Icon(Icons.upload_file),
-                  label: const Text('Upload GeoJSON'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _kGreen,
-                    foregroundColor: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-
-        return Stack(
-          children: [
-            _buildMap(areas),
-
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: _AreaListPanel(
-                areas: areas,
-                propertyId: propertyId,
-                categories: categories,
-                subcategories: subcategories,
-              ),
-            ),
-
-            Positioned(
-              right: 16,
-              bottom: 120,
-              child: FloatingActionButton.small(
-                heroTag: 'upload',
-                backgroundColor: _kGreen,
-                foregroundColor: Colors.white,
-                tooltip: 'Upload área',
-                onPressed: () => context.push(
-                  '/properties/$propertyId/upload?name=${Uri.encodeComponent('')}',
-                ),
-                child: const Icon(Icons.upload_file),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildMap(AreaListResponse areas) {
-    final allPoints = _collectPoints(areas);
-
-    final fit = allPoints.isEmpty
-        ? CameraFit.bounds(
-            bounds: LatLngBounds(
-              const LatLng(-15.8, -48.0),
-              const LatLng(-15.6, -47.8),
-            ),
-            padding: const EdgeInsets.all(48),
-          )
-        : CameraFit.bounds(
-            bounds: _boundsFrom(allPoints),
-            padding: const EdgeInsets.fromLTRB(32, 32, 32, 140),
-          );
-
-    final polygons = [
-      ..._buildBoundary(areas.boundary),
-      ..._buildInternal(areas.internal),
-    ];
-
-    return FlutterMap(
-      options: MapOptions(initialCameraFit: fit),
-      children: [
-        TileLayer(
-          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          userAgentPackageName: 'com.geomap.app',
-        ),
-        PolygonLayer(polygons: polygons),
-      ],
-    );
-  }
-}
 
 class _AreaListPanel extends StatelessWidget {
   final AreaListResponse areas;
