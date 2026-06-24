@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,7 +13,6 @@ import '../features/subcategories/providers/subcategories_provider.dart';
 import '../widgets/area_detail_sheet.dart';
 
 const _kGreen = Color(0xFF2E7D32);
-const _kGreenLight = Color(0xFFE8F5E9);
 
 final propertyDetailProvider = FutureProvider.family<Property?, String>(
   (ref, id) => PropertyRepository().getProperty(id),
@@ -251,7 +251,7 @@ class _AreaListPanel extends StatelessWidget {
     return Container(
       height: 108,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.95),
+        color: Colors.white.withValues(alpha: 0.95),
         boxShadow: const [BoxShadow(blurRadius: 12, color: Colors.black26)],
         borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -271,7 +271,7 @@ class _AreaListPanel extends StatelessWidget {
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
               itemCount: allAreas.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 10),
+              separatorBuilder: (_, _) => const SizedBox(width: 10),
               itemBuilder: (_, i) => _AreaChip(
                 area: allAreas[i],
                 propertyId: propertyId,
@@ -325,7 +325,7 @@ class _AreaChip extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: Colors.grey.shade200),
           boxShadow: [
-            BoxShadow(blurRadius: 4, color: Colors.black.withOpacity(0.06)),
+            BoxShadow(blurRadius: 4, color: Colors.black.withValues(alpha: 0.06)),
           ],
         ),
         child: Column(
@@ -588,8 +588,9 @@ List<LatLng> _collectPoints(AreaListResponse areas) {
     final coords = f.geometry['coordinates'] as List;
     if (type == 'Polygon') pts.addAll(_ringToLatLngs(coords[0] as List));
     if (type == 'MultiPolygon') {
-      for (final p in coords)
+      for (final p in coords) {
         pts.addAll(_ringToLatLngs((p as List)[0] as List));
+      }
     }
   }
   return pts;
@@ -615,4 +616,84 @@ Color _hexColor(String hex) {
 Color _hexAlpha(String hex, int alpha) {
   final h = hex.replaceFirst('#', '');
   return Color((alpha << 24) | int.parse(h, radix: 16));
+}
+
+class _PolygonPainter extends CustomPainter {
+  final Map<String, dynamic> geometry;
+  final Color fillColor;
+
+  const _PolygonPainter({required this.geometry, required this.fillColor});
+
+  List<Offset> _normalize(List ring, Size size, double padding) {
+    final pts = ring.map((c) => [
+      (c[0] as num).toDouble(),
+      (c[1] as num).toDouble(),
+    ]).toList();
+    final minX = pts.map((p) => p[0]).reduce((a, b) => a < b ? a : b);
+    final maxX = pts.map((p) => p[0]).reduce((a, b) => a > b ? a : b);
+    final minY = pts.map((p) => p[1]).reduce((a, b) => a < b ? a : b);
+    final maxY = pts.map((p) => p[1]).reduce((a, b) => a > b ? a : b);
+    final rangeX = maxX - minX == 0 ? 1.0 : maxX - minX;
+    final rangeY = maxY - minY == 0 ? 1.0 : maxY - minY;
+    final w = size.width - padding * 2;
+    final h = size.height - padding * 2;
+    return pts.map((p) => Offset(
+      padding + (p[0] - minX) / rangeX * w,
+      padding + (1 - (p[1] - minY) / rangeY) * h, // Y invertido: lat cresce para cima
+    )).toList();
+  }
+
+  void _drawRing(Canvas canvas, Paint fill, Paint stroke, List ring, Size size) {
+    final pts = _normalize(ring, size, 8);
+    if (pts.isEmpty) return;
+    final path = ui.Path()..moveTo(pts.first.dx, pts.first.dy);
+    for (final p in pts.skip(1)) {
+      path.lineTo(p.dx, p.dy);
+    }
+    path.close();
+    canvas.drawPath(path, fill);
+    canvas.drawPath(path, stroke);
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final fill = Paint()
+      ..color = fillColor.withValues(alpha: 0.75)
+      ..style = PaintingStyle.fill;
+    final stroke = Paint()
+      ..color = fillColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+
+    final type = geometry['type'] as String;
+    final coords = geometry['coordinates'] as List;
+
+    if (type == 'Polygon') {
+      _drawRing(canvas, fill, stroke, coords[0] as List, size);
+    } else if (type == 'MultiPolygon') {
+      for (final poly in coords) {
+        _drawRing(canvas, fill, stroke, (poly as List)[0] as List, size);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_PolygonPainter old) =>
+      old.geometry != geometry || old.fillColor != fillColor;
+}
+
+class _PolygonPreview extends StatelessWidget {
+  final Map<String, dynamic> geometry;
+  final Color color;
+
+  const _PolygonPreview({required this.geometry, required this.color});
+
+  @override
+  Widget build(BuildContext context) => Container(
+        color: const Color(0xFFF5F5F5),
+        child: CustomPaint(
+          painter: _PolygonPainter(geometry: geometry, fillColor: color),
+          child: const SizedBox.expand(),
+        ),
+      );
 }
