@@ -245,9 +245,9 @@ List<Polygon<AreaFeature>> buildMapInternalPolygons(List<AreaFeature> features) 
   return features.expand((f) {
     final hex = f.properties.categoryColor;
 
-    final fill = hex != null ? hexToColor(hex, 0xCC) : const Color(0x8088B04B);
+    final fill = hex != null ? hexToColor(hex, 0xCC / 0xFF) : const Color(0x8088B04B);
     final border = hex != null
-        ? hexToColor(hex, 0xFF)
+        ? hexToColor(hex, 1.0)
         : const Color(0xFF88B04B);
     return geometryToPolygons<AreaFeature>(
       f.geometry,
@@ -259,9 +259,10 @@ List<Polygon<AreaFeature>> buildMapInternalPolygons(List<AreaFeature> features) 
   }).toList();
 }
 
-Color hexToColor(String hex, int alpha) {
+Color hexToColor(String hex, double opacity) {
   final h = hex.replaceFirst('#', '');
   final rgb = int.parse(h, radix: 16);
+  final alpha = (opacity * 255).round();
 
   return Color((alpha << 24) | (rgb & 0xFFFFFF));
 }
@@ -363,7 +364,7 @@ class _Legend extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: categories.map((cat) {
-          final color = hexToColor(cat.color, 0xFF);
+          final color = hexToColor(cat.color, 1.0);
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 3),
             child: Row(

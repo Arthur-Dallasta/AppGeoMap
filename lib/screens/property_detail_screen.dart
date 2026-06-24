@@ -5,12 +5,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import '../core/models/area.dart';
+import '../core/models/category.dart';
 import '../core/models/property.dart';
+import '../core/models/subcategory.dart';
+import '../features/areas/data/area_repository.dart';
 import '../features/areas/providers/areas_provider.dart';
 import '../features/categories/providers/categories_provider.dart';
 import '../features/properties/data/property_repository.dart';
 import '../features/subcategories/providers/subcategories_provider.dart';
 import '../widgets/area_detail_sheet.dart';
+import 'map_screen.dart';
 
 const _kGreen = Color(0xFF2E7D32);
 
@@ -696,4 +700,128 @@ class _PolygonPreview extends StatelessWidget {
           child: const SizedBox.expand(),
         ),
       );
+}
+
+class _AreaCard extends ConsumerWidget {
+  final AreaFeature area;
+  final String propertyId;
+  final List<Category> categories;
+  final List<Subcategory> subcategories;
+
+  const _AreaCard({
+    required this.area,
+    required this.propertyId,
+    required this.categories,
+    required this.subcategories,
+  });
+
+  Color _categoryColor() {
+    final hex = area.properties.categoryColor;
+    if (hex == null) return const Color(0xFFB0BEC5);
+    return hexToColor(hex, 1.0); // usa helper público de map_screen.dart
+  }
+
+  Future<void> _delete(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Excluir área?'),
+        content: const Text('Esta ação não pode ser desfeita.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Excluir', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await AreaRepository().deleteArea(propertyId, area.properties.id);
+    ref.invalidate(areasProvider(propertyId));
+  }
+
+  void _edit(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => AreaDetailSheet(
+        area: area,
+        propertyId: propertyId,
+        categories: categories,
+        subcategories: subcategories,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final catName = area.properties.categoryName;
+    final subName = area.properties.subcategoryName;
+    final color = _categoryColor();
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            height: 120,
+            child: _PolygonPreview(geometry: area.geometry, color: color),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 8, 10, 4),
+            child: Row(children: [
+              Container(
+                width: 10, height: 10,
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      catName ?? 'Sem categoria',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: catName != null ? Colors.black87 : Colors.grey,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (subName != null)
+                      Text(
+                        subName,
+                        style: const TextStyle(fontSize: 11, color: Colors.grey),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                  ],
+                ),
+              ),
+            ]),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                onPressed: () => _edit(context),
+                child: const Text('Editar', style: TextStyle(color: Color(0xFF2E7D32))),
+              ),
+              TextButton(
+                onPressed: () => _delete(context, ref),
+                child: const Text('Excluir', style: TextStyle(color: Colors.red)),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }
