@@ -95,6 +95,7 @@ class PropertyMapView extends ConsumerStatefulWidget {
 
 class PropertyMapViewState extends ConsumerState<PropertyMapView> {
   late final ValueNotifier<LayerHitResult<AreaFeature>?> _hitNotifier;
+  late final MapController _mapController;
 
   AreaFeature? _pendingHit;
 
@@ -112,12 +113,14 @@ class PropertyMapViewState extends ConsumerState<PropertyMapView> {
     super.initState();
     _hitNotifier = ValueNotifier(null);
     _hitNotifier.addListener(_onHitChanged);
+    _mapController = MapController();
   }
 
   @override
   void dispose() {
     _hitNotifier.removeListener(_onHitChanged);
     _hitNotifier.dispose();
+    _mapController.dispose();
     super.dispose();
   }
 
@@ -148,7 +151,6 @@ class PropertyMapViewState extends ConsumerState<PropertyMapView> {
     final boundaryPolygons = buildMapBoundaryPolygons(widget.areas.boundary);
     final allPolygons = [...boundaryPolygons, ...internalPolygons];
     final initialFit = computeMapCameraFit(widget.areas);
-    final legendCategories = extractMapCategories(widget.areas.internal);
 
     final cats = ref.watch(categoriesProvider).valueOrNull ?? [];
     final subs =
@@ -157,6 +159,7 @@ class PropertyMapViewState extends ConsumerState<PropertyMapView> {
     return Stack(
       children: [
         FlutterMap(
+          mapController: _mapController,
           options: MapOptions(
             initialCameraFit: initialFit,
             interactionOptions: const InteractionOptions(
@@ -179,12 +182,31 @@ class PropertyMapViewState extends ConsumerState<PropertyMapView> {
             ),
           ],
         ),
-        if (legendCategories.isNotEmpty)
-          Positioned(
-            bottom: 16,
-            right: 16,
-            child: _Legend(categories: legendCategories),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: _AreaListPanel(
+            areas: widget.areas,
+            propertyId: widget.propertyId,
+            categories: cats,
+            subcategories: subs,
           ),
+        ),
+        Positioned(
+          right: 16,
+          bottom: 124,
+          child: FloatingActionButton.small(
+            heroTag: 'recenter',
+            backgroundColor: Colors.white,
+            foregroundColor: const Color(0xFF2E7D32),
+            tooltip: 'Centralizar mapa',
+            onPressed: () => _mapController.fitCamera(
+              computeMapCameraFit(widget.areas),
+            ),
+            child: const Icon(Icons.my_location),
+          ),
+        ),
       ],
     );
   }
@@ -347,43 +369,158 @@ List<MapCategory> extractMapCategories(List<AreaFeature> features) {
   return result;
 }
 
-class _Legend extends StatelessWidget {
-  final List<MapCategory> categories;
-  const _Legend({required this.categories});
+class _AreaListPanel extends StatelessWidget {
+  final AreaListResponse areas;
+  final String propertyId;
+  final List<Category> categories;
+  final List<Subcategory> subcategories;
+
+  const _AreaListPanel({
+    required this.areas,
+    required this.propertyId,
+    required this.categories,
+    required this.subcategories,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final allAreas = [
+      if (areas.boundary != null) areas.boundary!,
+      ...areas.internal,
+    ];
+
     return Container(
-      padding: const EdgeInsets.all(10),
+      height: 108,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.92),
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: const [BoxShadow(blurRadius: 6, color: Colors.black26)],
+        color: Colors.white.withValues(alpha: 0.95),
+        boxShadow: const [BoxShadow(blurRadius: 12, color: Colors.black26)],
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: categories.map((cat) {
-          final color = hexToColor(cat.color, 1.0);
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 3),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 8),
+            width: 32,
+            height: 3,
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          Expanded(
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              itemCount: allAreas.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 10),
+              itemBuilder: (_, i) => _AreaChip(
+                area: allAreas[i],
+                propertyId: propertyId,
+                categories: categories,
+                subcategories: subcategories,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AreaChip extends StatelessWidget {
+  final AreaFeature area;
+  final String propertyId;
+  final List<Category> categories;
+  final List<Subcategory> subcategories;
+
+  const _AreaChip({
+    required this.area,
+    required this.propertyId,
+    required this.categories,
+    required this.subcategories,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isBoundary = area.properties.type == 'boundary';
+    final catColor = area.properties.categoryColor;
+    final catName = area.properties.categoryName;
+
+    return GestureDetector(
+      onTap: () => showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => AreaDetailSheet(
+          area: area,
+          propertyId: propertyId,
+          categories: categories,
+          subcategories: subcategories,
+        ),
+      ),
+      child: Container(
+        width: 130,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(blurRadius: 4, color: Colors.black.withValues(alpha: 0.06)),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Container(
-                  width: 14,
-                  height: 14,
-                  decoration: BoxDecoration(
-                    color: color,
-                    borderRadius: BorderRadius.circular(3),
+                Icon(
+                  isBoundary ? Icons.map_outlined : Icons.layers_outlined,
+                  size: 15,
+                  color: const Color(0xFF2E7D32),
+                ),
+                const SizedBox(width: 5),
+                Expanded(
+                  child: Text(
+                    isBoundary ? 'Contorno' : 'Área interna',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const SizedBox(width: 8),
-                Text(cat.name, style: const TextStyle(fontSize: 12)),
               ],
             ),
-          );
-        }).toList(),
+            const SizedBox(height: 6),
+            if (catColor != null && catName != null)
+              Row(
+                children: [
+                  Container(
+                    width: 9,
+                    height: 9,
+                    decoration: BoxDecoration(
+                      color: hexToColor(catColor, 1.0),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  Expanded(
+                    child: Text(
+                      catName,
+                      style: TextStyle(fontSize: 11, color: Colors.grey[700]),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              )
+            else
+              Text(
+                'Sem categoria',
+                style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+              ),
+          ],
+        ),
       ),
     );
   }
