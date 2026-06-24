@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import '../core/models/area.dart';
 import '../core/models/category.dart';
@@ -32,16 +31,6 @@ class MapScreen extends ConsumerWidget {
         foregroundColor: Colors.white,
       ),
 
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: const Color(0xFF2E7D32),
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.cloud_upload_outlined),
-        label: const Text('Upload área'),
-
-        onPressed: () => context.push(
-          '/properties/$propertyId/upload?name=${Uri.encodeComponent(propertyName)}',
-        ),
-      ),
       body: areasAsync.when(
         loading: () => const Center(
           child: CircularProgressIndicator(color: Color(0xFF2E7D32)),
@@ -83,24 +72,28 @@ class MapScreen extends ConsumerWidget {
               ),
             );
           }
-          return _MapView(areas: areas, propertyId: propertyId);
+          return PropertyMapView(areas: areas, propertyId: propertyId);
         },
       ),
     );
   }
 }
 
-class _MapView extends ConsumerStatefulWidget {
+class PropertyMapView extends ConsumerStatefulWidget {
   final AreaListResponse areas;
   final String propertyId;
 
-  const _MapView({required this.areas, required this.propertyId});
+  const PropertyMapView({
+    super.key,
+    required this.areas,
+    required this.propertyId,
+  });
 
   @override
-  ConsumerState<_MapView> createState() => _MapViewState();
+  ConsumerState<PropertyMapView> createState() => PropertyMapViewState();
 }
 
-class _MapViewState extends ConsumerState<_MapView> {
+class PropertyMapViewState extends ConsumerState<PropertyMapView> {
   late final ValueNotifier<LayerHitResult<AreaFeature>?> _hitNotifier;
 
   AreaFeature? _pendingHit;
@@ -151,11 +144,11 @@ class _MapViewState extends ConsumerState<_MapView> {
 
   @override
   Widget build(BuildContext context) {
-    final internalPolygons = _buildInternalPolygons(widget.areas.internal);
-    final boundaryPolygons = _buildBoundaryPolygons(widget.areas.boundary);
+    final internalPolygons = buildMapInternalPolygons(widget.areas.internal);
+    final boundaryPolygons = buildMapBoundaryPolygons(widget.areas.boundary);
     final allPolygons = [...boundaryPolygons, ...internalPolygons];
-    final initialFit = _computeCameraFit(widget.areas);
-    final legendCategories = _extractCategories(widget.areas.internal);
+    final initialFit = computeMapCameraFit(widget.areas);
+    final legendCategories = extractMapCategories(widget.areas.internal);
 
     final cats = ref.watch(categoriesProvider).valueOrNull ?? [];
     final subs =
@@ -169,7 +162,7 @@ class _MapViewState extends ConsumerState<_MapView> {
             interactionOptions: const InteractionOptions(
               flags: InteractiveFlag.all,
             ),
-            onTap: (_, __) {
+            onTap: (_, _) {
               final hit = _pendingHit;
               _pendingHit = null;
               if (hit != null) _showAreaSheet(context, hit, cats, subs);
@@ -197,11 +190,11 @@ class _MapViewState extends ConsumerState<_MapView> {
   }
 }
 
-List<LatLng> _ringToLatLngs(List ring) => ring
+List<LatLng> ringToLatLngs(List ring) => ring
     .map((c) => LatLng((c[1] as num).toDouble(), (c[0] as num).toDouble()))
     .toList();
 
-List<Polygon<T>> _geometryToPolygons<T extends Object>(
+List<Polygon<T>> geometryToPolygons<T extends Object>(
   Map<String, dynamic> geometry,
   Color fill,
   Color border,
@@ -214,7 +207,7 @@ List<Polygon<T>> _geometryToPolygons<T extends Object>(
   if (type == 'Polygon') {
     return [
       Polygon<T>(
-        points: _ringToLatLngs(coords[0] as List),
+        points: ringToLatLngs(coords[0] as List),
         color: fill,
         borderColor: border,
         borderStrokeWidth: borderWidth,
@@ -226,7 +219,7 @@ List<Polygon<T>> _geometryToPolygons<T extends Object>(
   if (type == 'MultiPolygon') {
     return coords.map((poly) {
       return Polygon<T>(
-        points: _ringToLatLngs((poly as List)[0] as List),
+        points: ringToLatLngs((poly as List)[0] as List),
         color: fill,
         borderColor: border,
         borderStrokeWidth: borderWidth,
@@ -238,9 +231,9 @@ List<Polygon<T>> _geometryToPolygons<T extends Object>(
   return [];
 }
 
-List<Polygon<AreaFeature>> _buildBoundaryPolygons(AreaFeature? boundary) {
+List<Polygon<AreaFeature>> buildMapBoundaryPolygons(AreaFeature? boundary) {
   if (boundary == null) return [];
-  return _geometryToPolygons<AreaFeature>(
+  return geometryToPolygons<AreaFeature>(
     boundary.geometry,
     const Color(0x1A2E7D32),
     const Color(0xFF2E7D32),
@@ -248,15 +241,15 @@ List<Polygon<AreaFeature>> _buildBoundaryPolygons(AreaFeature? boundary) {
   );
 }
 
-List<Polygon<AreaFeature>> _buildInternalPolygons(List<AreaFeature> features) {
+List<Polygon<AreaFeature>> buildMapInternalPolygons(List<AreaFeature> features) {
   return features.expand((f) {
     final hex = f.properties.categoryColor;
 
-    final fill = hex != null ? _hexToColor(hex, 0xCC) : const Color(0x8088B04B);
+    final fill = hex != null ? hexToColor(hex, 0xCC) : const Color(0x8088B04B);
     final border = hex != null
-        ? _hexToColor(hex, 0xFF)
+        ? hexToColor(hex, 0xFF)
         : const Color(0xFF88B04B);
-    return _geometryToPolygons<AreaFeature>(
+    return geometryToPolygons<AreaFeature>(
       f.geometry,
       fill,
       border,
@@ -266,14 +259,14 @@ List<Polygon<AreaFeature>> _buildInternalPolygons(List<AreaFeature> features) {
   }).toList();
 }
 
-Color _hexToColor(String hex, int alpha) {
+Color hexToColor(String hex, int alpha) {
   final h = hex.replaceFirst('#', '');
   final rgb = int.parse(h, radix: 16);
 
   return Color((alpha << 24) | (rgb & 0xFFFFFF));
 }
 
-CameraFit _computeCameraFit(AreaListResponse areas) {
+CameraFit computeMapCameraFit(AreaListResponse areas) {
   final source =
       areas.boundary ??
       (areas.internal.isNotEmpty ? areas.internal.first : null);
@@ -287,7 +280,7 @@ CameraFit _computeCameraFit(AreaListResponse areas) {
     );
   }
 
-  final allPoints = _collectAllPoints(areas);
+  final allPoints = collectMapPoints(areas);
   if (allPoints.isEmpty) {
     return CameraFit.bounds(
       bounds: LatLngBounds(
@@ -316,7 +309,7 @@ CameraFit _computeCameraFit(AreaListResponse areas) {
   );
 }
 
-List<LatLng> _collectAllPoints(AreaListResponse areas) {
+List<LatLng> collectMapPoints(AreaListResponse areas) {
   final features = <AreaFeature>[
     if (areas.boundary != null) areas.boundary!,
     ...areas.internal,
@@ -327,21 +320,21 @@ List<LatLng> _collectAllPoints(AreaListResponse areas) {
     final type = f.geometry['type'] as String;
     final coords = f.geometry['coordinates'] as List;
     if (type == 'Polygon') {
-      points.addAll(_ringToLatLngs(coords[0] as List));
+      points.addAll(ringToLatLngs(coords[0] as List));
     } else if (type == 'MultiPolygon') {
       for (final poly in coords) {
-        points.addAll(_ringToLatLngs((poly as List)[0] as List));
+        points.addAll(ringToLatLngs((poly as List)[0] as List));
       }
     }
   }
   return points;
 }
 
-typedef _Category = ({String name, String color});
+typedef MapCategory = ({String name, String color});
 
-List<_Category> _extractCategories(List<AreaFeature> features) {
+List<MapCategory> extractMapCategories(List<AreaFeature> features) {
   final seen = <String>{};
-  final result = <_Category>[];
+  final result = <MapCategory>[];
   for (final f in features) {
     final name = f.properties.categoryName;
     final color = f.properties.categoryColor;
@@ -354,7 +347,7 @@ List<_Category> _extractCategories(List<AreaFeature> features) {
 }
 
 class _Legend extends StatelessWidget {
-  final List<_Category> categories;
+  final List<MapCategory> categories;
   const _Legend({required this.categories});
 
   @override
@@ -362,7 +355,7 @@ class _Legend extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.92),
+        color: Colors.white.withValues(alpha: 0.92),
         borderRadius: BorderRadius.circular(10),
         boxShadow: const [BoxShadow(blurRadius: 6, color: Colors.black26)],
       ),
@@ -370,7 +363,7 @@ class _Legend extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: categories.map((cat) {
-          final color = _hexToColor(cat.color, 0xFF);
+          final color = hexToColor(cat.color, 0xFF);
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 3),
             child: Row(
