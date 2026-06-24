@@ -1,9 +1,7 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:latlong2/latlong.dart';
 import '../core/models/area.dart';
 import '../core/models/category.dart';
 import '../core/models/property.dart';
@@ -92,106 +90,6 @@ class _PropertyDetailView extends StatelessWidget {
           children: [
             _MapTab(propertyId: propertyId),
             _InfoTab(property: property, propertyId: propertyId),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _AreaChip extends StatelessWidget {
-  final AreaFeature area;
-  final String propertyId;
-  final List categories;
-  final List subcategories;
-
-  const _AreaChip({
-    required this.area,
-    required this.propertyId,
-    required this.categories,
-    required this.subcategories,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isBoundary = area.properties.type == 'boundary';
-    final catColor = area.properties.categoryColor;
-    final catName = area.properties.categoryName;
-
-    return GestureDetector(
-      onTap: () => showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (_) => AreaDetailSheet(
-          area: area,
-          propertyId: propertyId,
-          categories: categories.cast(),
-          subcategories: subcategories.cast(),
-        ),
-      ),
-      child: Container(
-        width: 130,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.grey.shade200),
-          boxShadow: [
-            BoxShadow(blurRadius: 4, color: Colors.black.withValues(alpha: 0.06)),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  isBoundary ? Icons.map_outlined : Icons.layers_outlined,
-                  size: 15,
-                  color: _kGreen,
-                ),
-                const SizedBox(width: 5),
-                Expanded(
-                  child: Text(
-                    isBoundary ? 'Contorno' : 'Área interna',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-
-            if (catColor != null && catName != null)
-              Row(
-                children: [
-                  Container(
-                    width: 9,
-                    height: 9,
-                    decoration: BoxDecoration(
-                      color: _hexColor(catColor),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 5),
-                  Expanded(
-                    child: Text(
-                      catName,
-                      style: TextStyle(fontSize: 11, color: Colors.grey[700]),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              )
-            else
-              Text(
-                'Sem categoria',
-                style: TextStyle(fontSize: 11, color: Colors.grey[500]),
-              ),
           ],
         ),
       ),
@@ -342,54 +240,6 @@ class _InfoTab extends ConsumerWidget {
       ),
     ),
   );
-}
-
-List<LatLng> _ringToLatLngs(List ring) => ring
-    .map((c) => LatLng((c[1] as num).toDouble(), (c[0] as num).toDouble()))
-    .toList();
-
-
-List<Polygon> _geoToPolygons(
-  Map<String, dynamic> geo,
-  Color fill,
-  Color border,
-  double w,
-) {
-  final type = geo['type'] as String;
-  final coords = geo['coordinates'] as List;
-  if (type == 'Polygon') {
-    return [
-      Polygon(
-        points: _ringToLatLngs(coords[0] as List),
-        color: fill,
-        borderColor: border,
-        borderStrokeWidth: w,
-      ),
-    ];
-  }
-  if (type == 'MultiPolygon') {
-    return coords
-        .map(
-          (p) => Polygon(
-            points: _ringToLatLngs((p as List)[0] as List),
-            color: fill,
-            borderColor: border,
-            borderStrokeWidth: w,
-          ),
-        )
-        .toList();
-  }
-  return [];
-}
-
-Color _hexColor(String hex) {
-  final h = hex.replaceFirst('#', '');
-  return Color(int.parse('FF$h', radix: 16));
-}
-
-Color _hexAlpha(String hex, int alpha) {
-  final h = hex.replaceFirst('#', '');
-  return Color((alpha << 24) | int.parse(h, radix: 16));
 }
 
 class _PolygonPainter extends CustomPainter {
