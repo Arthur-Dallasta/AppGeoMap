@@ -28,7 +28,7 @@ class _CpfInputFormatter extends TextInputFormatter {
 }
 
 class RegisterScreen extends ConsumerStatefulWidget {
-  RegisterScreen({super.key});
+  const RegisterScreen({super.key});
 
   @override
   ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
@@ -42,7 +42,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _passwordController = TextEditingController();
   String _sex = 'M';
   bool _loading = false;
+  bool _passwordVisible = false;
   String? _error;
+
+  static const _kGreen = Color(0xFF2E7D32);
 
   @override
   void dispose() {
@@ -95,33 +98,80 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('Criar Conta'),
-        backgroundColor: const Color(0xFF2E7D32),
+        backgroundColor: _kGreen,
         foregroundColor: Colors.white,
+        elevation: 0,
       ),
       body: SingleChildScrollView(
         child: Form(
           key: _formKey,
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Padding(
-                padding: EdgeInsets.only(top: 40.0, bottom: 24.0),
-                child: Text(
-                  'Crie sua conta GeoMap',
-                  style: TextStyle(fontSize: 20, color: Color(0xFF2E7D32)),
+              // Header
+              Container(
+                width: double.infinity,
+                color: _kGreen.withValues(alpha: 0.05),
+                padding: const EdgeInsets.fromLTRB(32, 28, 32, 28),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        color: _kGreen.withValues(alpha: 0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.person_add_outlined,
+                        color: _kGreen,
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Crie sua conta GeoMap',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: _kGreen,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Preencha os dados abaixo para começar',
+                      style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                    ),
+                  ],
                 ),
               ),
 
+              const SizedBox(height: 20),
+
               if (_error != null)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(32.0, 0, 32.0, 8),
-                  child: Text(
-                    _error!,
-                    style: const TextStyle(color: Colors.red),
-                    textAlign: TextAlign.center,
+                Container(
+                  margin: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.red[50],
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.red.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline, color: Colors.red, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _error!,
+                          style: const TextStyle(color: Colors.red, fontSize: 13),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              _field(_nameController, 'Nome completo', false),
 
+              _field(_nameController, 'Nome completo', false),
               _field(
                 _cpfController,
                 'CPF',
@@ -141,66 +191,107 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 false,
                 type: TextInputType.emailAddress,
               ),
-              _field(_passwordController, 'Senha (mín. 8 caracteres)', true),
+              _field(
+                _passwordController,
+                'Senha',
+                !_passwordVisible,
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _passwordVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                    size: 20,
+                    color: Colors.grey[500],
+                  ),
+                  onPressed: () => setState(() => _passwordVisible = !_passwordVisible),
+                ),
+                validator: (v) {
+                  if (v == null || v.isEmpty) return '* Campo obrigatório';
+                  if (v.length < 8) return 'Mínimo 8 caracteres';
+                  return null;
+                },
+              ),
 
+              // Sex selector
               Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32.0,
-                  vertical: 4,
-                ),
-                child: DropdownButtonFormField<String>(
-                  value: _sex,
-                  decoration: InputDecoration(
-                    labelText: 'Sexo',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
+                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Sexo',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey[700],
+                      ),
                     ),
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: 'M', child: Text('Masculino')),
-                    DropdownMenuItem(value: 'F', child: Text('Feminino')),
-                    DropdownMenuItem(value: 'O', child: Text('Outro')),
-                  ],
-                  onChanged: (v) => setState(() => _sex = v!),
-                ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                height: 50,
-                width: 250,
-                child: ElevatedButton(
-                  onPressed: _loading ? null : _register,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2E7D32),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
-                  child: _loading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Text(
-                          'Criar Conta',
-                          style: TextStyle(fontSize: 18),
+                    const SizedBox(height: 8),
+                    SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment(value: 'M', label: Text('Masculino')),
+                        ButtonSegment(value: 'F', label: Text('Feminino')),
+                        ButtonSegment(value: 'O', label: Text('Outro')),
+                      ],
+                      selected: {_sex},
+                      onSelectionChanged: (s) => setState(() => _sex = s.first),
+                      style: ButtonStyle(
+                        backgroundColor: WidgetStateProperty.resolveWith(
+                          (states) => states.contains(WidgetState.selected) ? _kGreen : null,
                         ),
+                        foregroundColor: WidgetStateProperty.resolveWith(
+                          (states) => states.contains(WidgetState.selected) ? Colors.white : null,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
+
               const SizedBox(height: 24),
 
-              TextButton(
-                onPressed: () => context.go('/login'),
-                child: const Text(
-                  'Já tenho conta',
-                  style: TextStyle(color: Color(0xFF2E7D32)),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: SizedBox(
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: _loading ? null : _register,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _kGreen,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: _loading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text(
+                            'Criar Conta',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                          ),
+                  ),
                 ),
               ),
+
+              const SizedBox(height: 16),
+
+              Center(
+                child: TextButton(
+                  onPressed: () => context.go('/login'),
+                  child: const Text(
+                    'Já tenho conta',
+                    style: TextStyle(color: _kGreen),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 24),
             ],
           ),
         ),
@@ -215,9 +306,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     TextInputType type = TextInputType.text,
     String? Function(String?)? validator,
     List<TextInputFormatter>? inputFormatters,
+    Widget? suffixIcon,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 8.0),
+      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
       child: TextFormField(
         controller: controller,
         obscureText: obscure,
@@ -227,8 +319,18 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             validator ??
             (v) => v != null && v.isNotEmpty ? null : '* Campo obrigatório',
         decoration: InputDecoration(
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: _kGreen, width: 1.5),
+          ),
           label: Text(label),
+          suffixIcon: suffixIcon,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
       ),
     );

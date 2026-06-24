@@ -169,6 +169,13 @@ class _InfoTab extends ConsumerWidget {
       color: Colors.white,
       borderRadius: BorderRadius.circular(10),
       border: Border.all(color: Colors.grey.shade200),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.04),
+          blurRadius: 8,
+          offset: const Offset(0, 2),
+        ),
+      ],
     ),
     child: Column(
       children: children.map((w) {
@@ -176,7 +183,6 @@ class _InfoTab extends ConsumerWidget {
         return Column(
           children: [
             w,
-
             if (!isLast) Divider(height: 1, color: Colors.grey.shade100),
           ],
         );
@@ -185,15 +191,20 @@ class _InfoTab extends ConsumerWidget {
   );
 
   Widget _infoRow(String label, String value) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
     child: Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+        Text(label, style: TextStyle(fontSize: 13, color: Colors.grey[500])),
+        const SizedBox(width: 16),
         Flexible(
           child: Text(
             value,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
             textAlign: TextAlign.end,
           ),
         ),
@@ -205,27 +216,41 @@ class _InfoTab extends ConsumerWidget {
     required IconData icon,
     required String label,
     required VoidCallback onTap,
-  }) => GestureDetector(
-    onTap: onTap,
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
+  }) => Container(
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(10),
+      border: Border.all(color: Colors.grey.shade200),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.04),
+          blurRadius: 8,
+          offset: const Offset(0, 2),
+        ),
+      ],
+    ),
+    child: Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: _kGreen, size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-            ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Icon(icon, color: _kGreen, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: Colors.grey),
+            ],
           ),
-          const Icon(Icons.chevron_right, color: Colors.grey),
-        ],
+        ),
       ),
     ),
   );
