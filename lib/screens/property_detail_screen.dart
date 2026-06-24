@@ -90,7 +90,7 @@ class _PropertyDetailView extends StatelessWidget {
         ),
         body: TabBarView(
           children: [
-            _MapTab(propertyId: propertyId),
+            _MapTabLegacy(propertyId: propertyId),
             _InfoTab(property: property, propertyId: propertyId),
           ],
         ),
@@ -99,9 +99,9 @@ class _PropertyDetailView extends StatelessWidget {
   }
 }
 
-class _MapTab extends ConsumerWidget {
+class _MapTabLegacy extends ConsumerWidget {
   final String propertyId;
-  const _MapTab({required this.propertyId});
+  const _MapTabLegacy({required this.propertyId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -822,6 +822,108 @@ class _AreaCard extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _AreasTab extends ConsumerWidget {
+  final String propertyId;
+
+  const _AreasTab({required this.propertyId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final areasAsync = ref.watch(areasProvider(propertyId));
+    final cats = ref.watch(categoriesProvider).valueOrNull ?? [];
+    final subs = ref.watch(subcategoriesProvider(propertyId)).valueOrNull ?? [];
+
+    return areasAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFF2E7D32))),
+      error: (e, _) => Center(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text('Erro: $e'),
+          const SizedBox(height: 8),
+          ElevatedButton(
+            onPressed: () => ref.invalidate(areasProvider(propertyId)),
+            child: const Text('Tentar novamente'),
+          ),
+        ]),
+      ),
+      data: (areas) {
+        final internal = areas.internal;
+        if (internal.isEmpty) {
+          return const Center(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.layers_outlined, size: 64, color: Color(0xFFB0BEC5)),
+              SizedBox(height: 12),
+              Text('Nenhuma área interna cadastrada.',
+                  style: TextStyle(color: Colors.grey)),
+              SizedBox(height: 4),
+              Text('Faça upload na aba Mapa ou pelo botão acima.',
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                  textAlign: TextAlign.center),
+            ]),
+          );
+        }
+        return GridView.builder(
+          padding: const EdgeInsets.all(12),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            childAspectRatio: 0.78,
+          ),
+          itemCount: internal.length,
+          itemBuilder: (_, i) => _AreaCard(
+            area: internal[i],
+            propertyId: propertyId,
+            categories: cats,
+            subcategories: subs,
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _MapTab extends ConsumerWidget {
+  final String propertyId;
+
+  const _MapTab({required this.propertyId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final areasAsync = ref.watch(areasProvider(propertyId));
+
+    return areasAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFF2E7D32))),
+      error: (e, _) => Center(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text('Erro: $e'),
+          const SizedBox(height: 8),
+          ElevatedButton(
+            onPressed: () => ref.invalidate(areasProvider(propertyId)),
+            child: const Text('Tentar novamente'),
+          ),
+        ]),
+      ),
+      data: (areas) {
+        if (areas.isEmpty) {
+          return const Center(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.map_outlined, size: 80, color: Color(0xFFB0BEC5)),
+              SizedBox(height: 16),
+              Text('Nenhuma área cadastrada.',
+                  style: TextStyle(fontSize: 16, color: Colors.grey)),
+              SizedBox(height: 8),
+              Text('Faça upload de um GeoJSON para ver o mapa.',
+                  style: TextStyle(color: Colors.grey),
+                  textAlign: TextAlign.center),
+            ]),
+          );
+        }
+        return PropertyMapView(areas: areas, propertyId: propertyId);
+      },
     );
   }
 }
